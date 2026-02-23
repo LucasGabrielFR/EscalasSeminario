@@ -8,6 +8,7 @@ import ScheduleCreateView from './views/ScheduleCreateView';
 import ScheduleEditView from './views/ScheduleEditView';
 import PeopleView from './views/PeopleView';
 import RolesView from './views/RolesView';
+import NotificationSettingsView from './views/NotificationSettingsView';
 
 const App: React.FC = () => {
   const store = useEscalaStore();
@@ -80,6 +81,12 @@ const App: React.FC = () => {
             roles={store.roles} 
             onAdd={store.addRole} 
             onDelete={store.deleteRole} 
+          />
+        )}
+
+        {store.view === ViewMode.NOTIFICATIONS && (
+          <NotificationSettingsView 
+            schedules={store.schedules}
           />
         )}
       </main>

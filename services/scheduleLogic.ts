@@ -17,7 +17,7 @@ export const generateAutomaticSchedule = (
   scheduleName: string
 ): Schedule => {
   const weeks: ScheduleWeek[] = [];
-  
+
   const people = allPeople.filter(p => settings.personIds.includes(p.id));
   const roles = allRoles.filter(r => settings.roleIds.includes(r.id));
 
@@ -39,31 +39,96 @@ export const generateAutomaticSchedule = (
       const assignments: Assignment[] = [];
 
       roles.forEach(role => {
-        // Find best person
-        const candidates = [...people].sort((a, b) => {
-          const diffWorkload = workload[a.id] - workload[b.id];
-          if (diffWorkload !== 0) return diffWorkload;
-          
-          const aUsedThisWeek = peopleUsedThisWeek.has(a.id) ? 1 : 0;
-          const bUsedThisWeek = peopleUsedThisWeek.has(b.id) ? 1 : 0;
-          return aUsedThisWeek - bUsedThisWeek;
+        // 1. Filter out people already assigned to ANY role on this day
+        // 2. Filter out people who already did THIS role this week
+        const candidates = [...people].filter(p => {
+          // Rule: No multiple functions on the same day
+          const assignedToday = assignments.some(a => a.personId === p.id);
+          if (assignedToday) return false;
+
+          // Rule: No same function in the same week
+          // Check if person has been assigned this roleId in any previous day of this week
+          // We can check `lastWeekAssignments` but that tracks ACROSS weeks (maybe? let me re-read).
+          // Actually, `lastWeekAssignments` in the original code seemed to track across weeks or just be a variable name for "previous assignment data".
+          // In the original code: `lastWeekAssignments` was used to avoid same person in same role on same day as LAST week if implied, 
+          // but the variable scope was outside the week loop? No, it was init inside the function but outside the week loop.
+          // BUT the user request is generic: "não repetir a mesma função na mesma semana".
+
+          // Let's check the current week's assignments so far.
+          // We need to look at `weekDays` (days already processed in this week)
+          for (const prevDay of weekDays) {
+            const hasRole = prevDay.assignments.some(a => a.roleId === role.id && a.personId === p.id);
+            if (hasRole) return false;
+          }
+
+          return true;
         });
 
-        // Try to avoid same person in same role on same day as last week
-        const filteredCandidates = candidates.filter(p => {
-          const lastPerson = lastWeekAssignments[role.id]?.[dayIdx];
-          return lastPerson !== p.id;
+        // Sort candidates
+        // Goal: "use o máximo de pessoas das selecionadas por semana" -> Prioritize those who have assignments count == 0 this week?
+        // Or simply lowest workload overall?
+
+        // Let's count assignments for each person THIS WEEK
+        const assignmentsThisWeek: Record<string, number> = {};
+        people.forEach(p => assignmentsThisWeek[p.id] = 0);
+
+        weekDays.forEach(d => {
+          d.assignments.forEach(a => {
+            assignmentsThisWeek[a.personId] = (assignmentsThisWeek[a.personId] || 0) + 1;
+          });
+        });
+        // Also include assignments from current day (already processed roles)
+        assignments.forEach(a => {
+          assignmentsThisWeek[a.personId] = (assignmentsThisWeek[a.personId] || 0) + 1;
         });
 
-        const selected = filteredCandidates.length > 0 ? filteredCandidates[0] : candidates[0];
+        candidates.sort((a, b) => {
+          // Priority 1: Least assignments THIS WEEK (to maximize rotation/people usage logic)
+          // "use o máximo de pessoas" implies spreading the load.
+          const weekDiff = assignmentsThisWeek[a.id] - assignmentsThisWeek[b.id];
+          if (weekDiff !== 0) return weekDiff;
 
-        assignments.push({ roleId: role.id, personId: selected.id });
-        
-        workload[selected.id]++;
-        peopleUsedThisWeek.add(selected.id);
-        
-        if (!lastWeekAssignments[role.id]) lastWeekAssignments[role.id] = {};
-        lastWeekAssignments[role.id][dayIdx] = selected.id;
+          // Priority 2: Total workload (cumulative across all weeks)
+          const workDiff = workload[a.id] - workload[b.id];
+          if (workDiff !== 0) return workDiff;
+
+          // Priority 3: Random
+          return Math.random() - 0.5;
+        });
+
+        if (candidates.length > 0) {
+          const selected = candidates[0];
+          assignments.push({ roleId: role.id, personId: selected.id });
+          workload[selected.id]++;
+          peopleUsedThisWeek.add(selected.id);
+
+          if (!lastWeekAssignments[role.id]) lastWeekAssignments[role.id] = {};
+          lastWeekAssignments[role.id][dayIdx] = selected.id;
+        } else {
+          // Fallback: If no one satisfies ALL constraints, what do we do?
+          // The prompt says "tente colocar...". If impossible, maybe we relax the "same role per week" constraint?
+          // Or we just pick someone who isn't working today (strict day constraint).
+          // Let's try to relax "Same role per week" if strict list is empty, but KEEP "Same day" constraint strictly.
+
+          const relaxCandidates = [...people].filter(p => {
+            // Keep strict Day constraint
+            const assignedToday = assignments.some(a => a.personId === p.id);
+            return !assignedToday;
+          });
+
+          // Sort by workload
+          relaxCandidates.sort((a, b) => workload[a.id] - workload[b.id]);
+
+          if (relaxCandidates.length > 0) {
+            const selected = relaxCandidates[0];
+            assignments.push({ roleId: role.id, personId: selected.id });
+            workload[selected.id]++;
+            peopleUsedThisWeek.add(selected.id);
+          }
+          // If still empty, it means EVERYONE is assigned today already (or no people). 
+          // We skip assignment or force someone (double shift). The prompt says "ela não pode fazer outra função no mesmo dia".
+          // So we define it as strict. Assignments might be empty for this role.
+        }
       });
 
       weekDays.push({

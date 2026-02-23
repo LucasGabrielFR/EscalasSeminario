@@ -14,7 +14,7 @@ const ScheduleCreateView: React.FC<CreateProps> = ({ people, roles, onBack, onCr
   const [newSched, setNewSched] = useState({
     name: `Escala ${new Date().toLocaleDateString()}`,
     weeks: 4,
-    days: [0], 
+    days: [1, 2, 3, 4, 5], 
     people: people.map(p => p.id),
     roles: roles.map(r => r.id)
   });
