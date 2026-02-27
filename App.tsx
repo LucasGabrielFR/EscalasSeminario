@@ -72,6 +72,7 @@ const App: React.FC = () => {
           <PeopleView 
             people={store.people} 
             onAdd={store.addPerson} 
+            onEdit={store.editPerson}
             onDelete={store.deletePerson} 
           />
         )}

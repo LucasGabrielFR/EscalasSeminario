@@ -68,6 +68,15 @@ export const useEscalaStore = () => {
     }
   };
 
+  const editPerson = async (id: string, name: string, whatsapp: string) => {
+    const { error } = await supabase.from('people').update({ name, whatsapp }).eq('id', id);
+    if (!error) {
+      setPeople(prev => prev.map(p => p.id === id ? { ...p, name, whatsapp } : p));
+    } else {
+      alert("Erro ao editar pessoa: " + error.message);
+    }
+  };
+
   const addRole = async (name: string) => {
     const newRole = { id: generateId(), name };
     const { error } = await supabase.from('roles').insert([newRole]);
@@ -178,7 +187,7 @@ export const useEscalaStore = () => {
 
   return {
     view, setView,
-    people, addPerson, deletePerson,
+    people, addPerson, editPerson, deletePerson,
     roles, addRole, deleteRole,
     schedules, createSchedule, deleteSchedule, updateAssignment, regenerateSchedule,
     selectedScheduleId, setSelectedScheduleId,

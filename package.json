@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:3000 && electron .\"",
-    "electron:build": "npm run build && npx electron-packager . \"Escala Inteligente\" --platform=win32 --arch=x64 --out=dist_electron --overwrite --ignore=\"^/(src|dist_electron|\\.git|node_modules/\\.cache)\""
+    "electron:build": "npm run build && npx electron-packager . \"Escala Inteligente\" --platform=win32 --arch=x64 --out=dist_electron --overwrite --icon=\"public/icon.ico\" --ignore=\"^/(src|dist_electron|\\.git|node_modules/\\.cache)\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
@@ -26,6 +26,7 @@
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
     "electron-packager": "^17.1.2",
+    "png-to-ico": "^3.0.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "wait-on": "^9.0.4"
@@ -33,6 +34,7 @@
   "build": {
     "appId": "com.escalainteligente.app",
     "productName": "Escala Inteligente",
+    "icon": "public/icon.ico",
     "directories": {
       "output": "dist_electron"
     },

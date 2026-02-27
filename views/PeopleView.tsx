@@ -1,15 +1,33 @@
 
-import React from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { Person } from '../types';
 
 interface PeopleProps {
   people: Person[];
   onAdd: (name: string, wa: string) => void;
+  onEdit: (id: string, name: string, wa: string) => void;
   onDelete: (id: string) => void;
 }
 
-const PeopleView: React.FC<PeopleProps> = ({ people, onAdd, onDelete }) => {
+const PeopleView: React.FC<PeopleProps> = ({ people, onAdd, onEdit, onDelete }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editWa, setEditWa] = useState('');
+
+  const handleEditClick = (p: Person) => {
+    setEditingId(p.id);
+    setEditName(p.name);
+    setEditWa(p.whatsapp);
+  };
+
+  const handleSaveEdit = (id: string) => {
+    if (editName.trim() && editWa.trim()) {
+      onEdit(id, editName.trim(), editWa.trim());
+      setEditingId(null);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in duration-500">
       <h2 className="text-4xl font-black text-slate-900 mb-8">Equipe</h2>
@@ -33,11 +51,38 @@ const PeopleView: React.FC<PeopleProps> = ({ people, onAdd, onDelete }) => {
           <tbody className="divide-y divide-slate-50">
             {people.map(p => (
               <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
-                <td className="px-8 py-5 text-slate-400 text-xs font-bold">{p.whatsapp}</td>
-                <td className="px-8 py-5 text-right">
-                  <button onClick={() => onDelete(p.id)} className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
-                </td>
+                {editingId === p.id ? (
+                  <>
+                    <td className="px-8 py-5">
+                      <input 
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        autoFocus
+                      />
+                    </td>
+                    <td className="px-8 py-5">
+                      <input 
+                        value={editWa}
+                        onChange={(e) => setEditWa(e.target.value)}
+                        className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs"
+                      />
+                    </td>
+                    <td className="px-8 py-5 text-right space-x-2">
+                      <button onClick={() => handleSaveEdit(p.id)} className="p-2 text-green-500 hover:bg-green-50 rounded-xl transition-all"><Check size={18}/></button>
+                      <button onClick={() => setEditingId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"><X size={18}/></button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-8 py-5 font-bold text-slate-800">{p.name}</td>
+                    <td className="px-8 py-5 text-slate-400 text-xs font-bold">{p.whatsapp}</td>
+                    <td className="px-8 py-5 text-right space-x-2">
+                      <button onClick={() => handleEditClick(p)} className="p-2 text-slate-200 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><Edit2 size={18}/></button>
+                      <button onClick={() => onDelete(p.id)} className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
             {people.length === 0 && (
