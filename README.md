@@ -186,6 +186,12 @@ escala-inteligente-pro/
 
 ---
 
+## 📋 Changelog
+
+Todas as mudanças notáveis entre versões estão documentadas em [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
 ## 📄 Licença
 
 Projeto de uso interno. Todos os direitos reservados.
